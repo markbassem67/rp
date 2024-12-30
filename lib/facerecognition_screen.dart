@@ -40,7 +40,7 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
   }
 
   Future<void> sendImageToServer(File imageFile) async {
-    final uri = Uri.parse('http://192.168.1.126:5000/recognise'); // Replace with your server IP
+    final uri = Uri.parse('http://192.168.1.12:5000/recognise'); // Replace with your server IP
     final request = http.MultipartRequest('POST', uri);
 
     try {

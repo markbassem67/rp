@@ -77,7 +77,7 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
       final List<int> jpegBytes = img.encodeJpg(resizedImage);
 
       // Send the preprocessed frame to the server
-      final uri = Uri.parse('http://192.168.1.126:5000/recognise');
+      final uri = Uri.parse('http://192.168.1.12:5000/recognise');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(http.MultipartFile.fromBytes('image', jpegBytes,
           filename: 'frame.jpg'));
