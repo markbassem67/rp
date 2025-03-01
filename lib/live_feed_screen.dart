@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -23,6 +24,8 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
   bool _isProcessing = false;
   String _recognizedName = "No faces detected";
   int _currentIndex = 0;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final Set<String> _recognizedPeople = {};
 
   @override
   void initState() {
@@ -30,7 +33,8 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
     _controller = CameraController(
       widget.camera,
       ResolutionPreset.medium,
-      enableAudio: false, // Use medium for balance between performance and quality
+      enableAudio:
+      false, // Use medium for balance between performance and quality
     );
     _initializeControllerFuture = _controller.initialize();
     _controller.setFocusMode(FocusMode.locked);
@@ -60,11 +64,11 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
     try {
       _isProcessing = true;
 
-      // Get the current frame
+      // Capture the frame
       final xFile = await _controller.takePicture();
       final Uint8List bytes = await File(xFile.path).readAsBytes();
 
-      // Preprocess the image using the 'image' package
+      // Preprocess the image
       final img.Image? originalImage = img.decodeImage(bytes);
       if (originalImage == null) {
         setState(() {
@@ -72,24 +76,31 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
         });
         return;
       }
-      final img.Image resizedImage =
-          img.copyResize(originalImage, width: 500, height: 500);
+
+      final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
       final List<int> jpegBytes = img.encodeJpg(resizedImage);
 
-      // Send the preprocessed frame to the server
-      final uri = Uri.parse('http://192.168.1.12:5000/recognise');
+      // Send to server
+      final uri = Uri.parse('http://192.168.1.14:5000/recognise');
       final request = http.MultipartRequest('POST', uri);
-      request.files.add(http.MultipartFile.fromBytes('image', jpegBytes,
-          filename: 'frame.jpg'));
+      request.files.add(http.MultipartFile.fromBytes('image', jpegBytes, filename: 'frame.jpg'));
 
       final response = await request.send();
       final responseData = await response.stream.bytesToString();
       final decodedResponse = jsonDecode(responseData);
 
       if (response.statusCode == 200 && decodedResponse['faces'].isNotEmpty) {
+        String detectedPerson = decodedResponse['faces'][0]['name'];
+
         setState(() {
-          _recognizedName = decodedResponse['faces'][0]['name'];
+          _recognizedName = detectedPerson;
         });
+
+        // ✅ Play sound ONLY if person is newly recognized
+        if (!_recognizedPeople.contains(detectedPerson)) {
+          _recognizedPeople.add(detectedPerson); // Add to recognized set
+          await _audioPlayer.play(AssetSource('Ding-Sound-Effect.mp3')); // Play sound
+        }
       } else {
         setState(() {
           _recognizedName = "No faces detected";
@@ -105,7 +116,7 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('')),
+      appBar: AppBar(title: const Text('Live Feed',style: TextStyle(fontSize: 35,fontWeight: FontWeight.bold),),centerTitle: true,),
       body: Stack(
         alignment: Alignment.center,
         children: [
@@ -120,13 +131,16 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
             },
           ),
           Positioned(
-            bottom: 20,
+            bottom: 10,
             child: Container(
               padding: const EdgeInsets.all(8),
               color: Colors.black.withOpacity(0.5),
               child: Text(
                 _recognizedName,
-                style: const TextStyle(color: Colors.white, fontSize: 20,fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
