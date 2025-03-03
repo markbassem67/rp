@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:camera/camera.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -130,7 +131,9 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text(''),),
+      appBar: AppBar(
+        title: const Text(''),
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : FutureBuilder<void>(
@@ -161,7 +164,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                   );
                 },
                 icon: const Icon(
-                  Icons.photo,
+                  CupertinoIcons.photo_fill_on_rectangle_fill,
                   size: 30,
                 ),
               ),
@@ -171,8 +174,8 @@ class TakePictureScreenState extends State<TakePictureScreen> {
               CustomElevatedButton(
                 label: 'Take image',
                 icon: const Icon(
-                  Icons.camera_alt_outlined,
-                  size: 30,
+                  CupertinoIcons.camera_circle_fill,
+                  size: 35,
                 ),
                 onPressed: () async {
                   try {
@@ -213,9 +216,8 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                   }
                 },
               ),
-
               const SizedBox(
-                height: 50,
+                height: 20,
               )
             ],
           ),
@@ -223,23 +225,29 @@ class TakePictureScreenState extends State<TakePictureScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: Colors.blue,
+        selectedLabelStyle:
+            const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        unselectedFontSize: 18,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.camera),
+            icon: Icon(CupertinoIcons.camera_fill),
             label: 'Live Recognition',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.face),
+            icon: Icon(CupertinoIcons.person_crop_rectangle_fill),
             label: 'Image Recognition',
           ),
-
         ],
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
             if (_currentIndex == 0) {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LiveRecognitionScreen(camera: widget.camera)));
+              Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          LiveRecognitionScreen(camera: widget.camera)));
             }
           });
         },

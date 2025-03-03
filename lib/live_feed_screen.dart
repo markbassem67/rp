@@ -4,10 +4,11 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
-import 'package:rp/camera_screen.dart';
+import 'package:rp/image_recognition_screen.dart';
 
 class LiveRecognitionScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -22,7 +23,7 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isProcessing = false;
-  String _recognizedName = "No faces detected";
+  List<String> _recognizedNames = ["No faces detected"];
   int _currentIndex = 0;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Set<String> _recognizedPeople = {};
@@ -33,20 +34,13 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
     _controller = CameraController(
       widget.camera,
       ResolutionPreset.medium,
-      enableAudio:
-      false, // Use medium for balance between performance and quality
+      enableAudio: false,
     );
     _initializeControllerFuture = _controller.initialize();
     _controller.setFocusMode(FocusMode.locked);
     _controller.setExposureMode(ExposureMode.locked);
     _startFrameProcessing();
   }
-
-  /*@override
-  void dispose() {
-    // _controller.dispose();
-    super.dispose();
-  }*/
 
   void _startFrameProcessing() {
     Timer.periodic(const Duration(milliseconds: 1000), (timer) {
@@ -64,46 +58,60 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
     try {
       _isProcessing = true;
 
-      // Capture the frame
       final xFile = await _controller.takePicture();
       final Uint8List bytes = await File(xFile.path).readAsBytes();
 
-      // Preprocess the image
       final img.Image? originalImage = img.decodeImage(bytes);
       if (originalImage == null) {
         setState(() {
-          _recognizedName = "Error decoding image";
+          _recognizedNames = ["Error decoding image"];
         });
         return;
       }
 
-      final img.Image resizedImage = img.copyResize(originalImage, width: 500, height: 500);
+      final img.Image resizedImage =
+      img.copyResize(originalImage, width: 500, height: 500);
       final List<int> jpegBytes = img.encodeJpg(resizedImage);
 
-      // Send to server
       final uri = Uri.parse('http://192.168.1.14:5000/recognise');
       final request = http.MultipartRequest('POST', uri);
-      request.files.add(http.MultipartFile.fromBytes('image', jpegBytes, filename: 'frame.jpg'));
+      request.files.add(http.MultipartFile.fromBytes('image', jpegBytes,
+          filename: 'frame.jpg'));
 
       final response = await request.send();
       final responseData = await response.stream.bytesToString();
       final decodedResponse = jsonDecode(responseData);
 
-      if (response.statusCode == 200 && decodedResponse['faces'].isNotEmpty) {
-        String detectedPerson = decodedResponse['faces'][0]['name'];
+      //print("Server Response: $decodedResponse"); // Debugging
 
+      if (response.statusCode == 200 &&
+          decodedResponse.containsKey('faces') &&
+          decodedResponse['faces'].isNotEmpty) {
+        // Extract all detected names
+        List<String> detectedNames = [];
+        for (var face in decodedResponse['faces']) {
+          if (face.containsKey('name')) {
+            detectedNames.add(face['name']);
+          }
+        }
+
+        // Ensure UI updates with detected names
         setState(() {
-          _recognizedName = detectedPerson;
+          _recognizedNames = detectedNames.isNotEmpty
+              ? detectedNames
+              : ["No faces detected"];
         });
 
-        // ✅ Play sound ONLY if person is newly recognized
-        if (!_recognizedPeople.contains(detectedPerson)) {
-          _recognizedPeople.add(detectedPerson); // Add to recognized set
-          await _audioPlayer.play(AssetSource('Ding-Sound-Effect.mp3')); // Play sound
+        // Play sound for new people only
+        for (String name in detectedNames) {
+          if (!_recognizedPeople.contains(name) && name != "Unknown Face") {
+            _recognizedPeople.add(name);
+            await _audioPlayer.play(AssetSource('Ding-Sound-Effect.mp3'));
+          }
         }
       } else {
         setState(() {
-          _recognizedName = "No faces detected";
+          _recognizedNames = ["No faces detected"];
         });
       }
     } catch (e) {
@@ -113,10 +121,17 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Live Feed',style: TextStyle(fontSize: 35,fontWeight: FontWeight.bold),),centerTitle: true,),
+      appBar: AppBar(
+        title: const Text(
+          'Live Feed',
+          style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
       body: Stack(
         alignment: Alignment.center,
         children: [
@@ -135,12 +150,16 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               color: Colors.black.withOpacity(0.5),
-              child: Text(
-                _recognizedName,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold),
+              child: Column(
+                children: _recognizedNames
+                    .map((name) => Text(
+                  name,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold),
+                ))
+                    .toList(),
               ),
             ),
           ),
@@ -148,13 +167,16 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: Colors.blue,
+        selectedLabelStyle:
+        const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        unselectedFontSize: 18,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.camera),
+            icon: Icon(CupertinoIcons.camera_fill),
             label: 'Live Recognition',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.face),
+            icon: Icon(CupertinoIcons.person_crop_rectangle_fill),
             label: 'Image Recognition',
           ),
         ],

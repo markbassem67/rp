@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:rp/camera_screen.dart';
+import 'package:rp/image_recognition_screen.dart';
 import 'package:rp/facerecognition_screen.dart';
 import 'package:rp/live_feed_screen.dart';
 
