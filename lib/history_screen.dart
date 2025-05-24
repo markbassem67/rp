@@ -28,7 +28,7 @@ class HistoryScreen extends StatelessWidget {
         ],
       ),
       body: history.isEmpty
-          ? const Center(child: Text("No detections yet."))
+          ? const Center(child: Text("No detections yet.",style: TextStyle(fontSize: 20),))
           : ListView.builder(
         itemCount: history.length,
         itemBuilder: (context, index) {
@@ -51,7 +51,7 @@ class HistoryScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Start New Session?'),
-        content: const Text('This will erase all detection history.'),
+        content: const Text('This will erase all saved history.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),

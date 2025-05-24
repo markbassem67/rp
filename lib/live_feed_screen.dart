@@ -9,8 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:rp/detection_record.dart';
-import 'package:rp/history_screen.dart';
-import 'package:rp/image_recognition_screen.dart';
+
 
 class LiveRecognitionScreen extends StatefulWidget {
   final CameraDescription camera;
@@ -21,12 +20,12 @@ class LiveRecognitionScreen extends StatefulWidget {
   State<LiveRecognitionScreen> createState() => _LiveRecognitionScreenState();
 }
 
-class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
+class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isProcessing = false;
   List<String> _recognizedNames = ["No faces detected"];
-  int _currentIndex = 0;
+  //int _currentIndex = 0;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Set<String> _recognizedPeople = {};
    final List<DetectionRecord> history=[];
@@ -161,7 +160,7 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      /*bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: Colors.blue,
         selectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -210,8 +209,9 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
           });
         },
         enableFeedback: false,
-      ),
+      ),*/
     );
   }
+
 }
 

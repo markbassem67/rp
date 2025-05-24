@@ -8,7 +8,7 @@ import 'dart:convert';
 import 'package:image/image.dart' as img;
 import 'package:rp/custom_elevated_button.dart';
 import 'package:rp/facerecognition_screen.dart';
-import 'package:rp/live_feed_screen.dart';
+
 
 class TakePictureScreen extends StatefulWidget {
   const TakePictureScreen({
@@ -26,7 +26,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isLoading = false; // Loading state
-  int _currentIndex = 1;
+  //int _currentIndex = 1;
 
   @override
   void initState() {
@@ -226,7 +226,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           )
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
+      /*bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: const Color.fromRGBO(0, 91, 196, 1),
         selectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -255,7 +255,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           });
         },
         enableFeedback: false,
-      ),
+      ),*/
     );
   }
 }
