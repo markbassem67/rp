@@ -8,6 +8,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
+import 'package:rp/detection_record.dart';
+import 'package:rp/history_screen.dart';
 import 'package:rp/image_recognition_screen.dart';
 
 class LiveRecognitionScreen extends StatefulWidget {
@@ -27,6 +29,7 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
   int _currentIndex = 0;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Set<String> _recognizedPeople = {};
+   final List<DetectionRecord> history=[];
 
   @override
   void initState() {
@@ -70,10 +73,10 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
       }
 
       final img.Image resizedImage =
-      img.copyResize(originalImage, width: 500, height: 500);
+          img.copyResize(originalImage, width: 500, height: 500);
       final List<int> jpegBytes = img.encodeJpg(resizedImage);
 
-      final uri = Uri.parse('http://192.168.1.14:5000/recognise');
+      final uri = Uri.parse('http://192.168.1.81:5000/recognise');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(http.MultipartFile.fromBytes('image', jpegBytes,
           filename: 'frame.jpg'));
@@ -84,32 +87,26 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
 
       //print("Server Response: $decodedResponse"); // Debugging
 
-      if (response.statusCode == 200 &&
-          decodedResponse.containsKey('faces') &&
-          decodedResponse['faces'].isNotEmpty) {
-        // Extract all detected names
-        List<String> detectedNames = [];
-        for (var face in decodedResponse['faces']) {
-          if (face.containsKey('name')) {
-            detectedNames.add(face['name']);
-          }
-        }
+      if (response.statusCode == 200 && decodedResponse['faces'].isNotEmpty) {
+        List<dynamic> faces = decodedResponse['faces'];
 
-        // Ensure UI updates with detected names
         setState(() {
-          _recognizedNames = detectedNames.isNotEmpty
-              ? detectedNames
-              : ["No faces detected"];
+          _recognizedNames = faces.map((f) => f['name']).join(', ') as List<String>;
         });
 
-        // Play sound for new people only
-        for (String name in detectedNames) {
-          if (!_recognizedPeople.contains(name) && name != "Unknown Face") {
-            _recognizedPeople.add(name);
-            await _audioPlayer.play(AssetSource('Ding-Sound-Effect.mp3'));
+        for (var face in faces) {
+          String detectedPerson = face['name'];
+          if (!_recognizedPeople.contains(detectedPerson)) {
+            _recognizedPeople.add(detectedPerson);
+            _audioPlayer.play(AssetSource('Ding-Sound-Effect.mp3'));
           }
+          history.add(DetectionRecord(
+            name: detectedPerson,
+            timestamp: DateTime.now(),
+          ));
         }
-      } else {
+      }
+      else {
         setState(() {
           _recognizedNames = ["No faces detected"];
         });
@@ -120,7 +117,6 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
       _isProcessing = false;
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -153,12 +149,12 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
               child: Column(
                 children: _recognizedNames
                     .map((name) => Text(
-                  name,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold),
-                ))
+                          name,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold),
+                        ))
                     .toList(),
               ),
             ),
@@ -168,7 +164,7 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
       bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: Colors.blue,
         selectedLabelStyle:
-        const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         unselectedFontSize: 18,
         items: const [
           BottomNavigationBarItem(
@@ -177,7 +173,11 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.person_crop_rectangle_fill),
-            label: 'Image Recognition',
+            label: 'Image Upload',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(CupertinoIcons.clock_solid),
+            label: 'Session History',
           ),
         ],
         currentIndex: _currentIndex,
@@ -190,10 +190,28 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
                   MaterialPageRoute(
                       builder: (context) =>
                           TakePictureScreen(camera: widget.camera)));
+            } else if (_currentIndex == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HistoryScreen(
+                    history: history,
+                    onClearHistory: () {
+                      setState(() {
+                        history.clear();
+                        _recognizedPeople
+                            .clear(); // Optional: reset recognition state
+                      });
+                    },
+                  ),
+                ),
+              );
             }
           });
         },
+        enableFeedback: false,
       ),
     );
   }
 }
+

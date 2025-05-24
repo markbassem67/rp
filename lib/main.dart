@@ -18,7 +18,7 @@ Future<void> main() async {
 
   runApp(
     MaterialApp(
-      theme: ThemeData.dark(),
+      theme: ThemeData.light(),
       debugShowCheckedModeBanner: false,
       home: //FaceRecognitionPage()
       LiveRecognitionScreen(camera: firstCamera,),

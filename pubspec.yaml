@@ -42,6 +42,7 @@ dependencies:
   audioplayers: ^5.2.1    #dont change version above 5.2.1
 
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

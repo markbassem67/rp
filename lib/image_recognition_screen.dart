@@ -81,7 +81,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
 
   Future<void> sendImageToServer(String imagePath) async {
     final uri = Uri.parse(
-        'http://192.168.1.14:5000/recognise'); // Replace with your server IP
+        'http://192.168.1.81:5000/recognise'); // Replace with your server IP
     final request = http.MultipartRequest('POST', uri);
 
     try {
@@ -148,83 +148,86 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                 }
               },
             ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              CustomElevatedButton(
-                label: 'Choose from photos',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => FaceRecognitionPage()),
-                  );
-                },
-                icon: const Icon(
-                  CupertinoIcons.photo_fill_on_rectangle_fill,
-                  size: 30,
-                ),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            CustomElevatedButton(
+              label: 'Upload from photos',
+              height: 50,
+              width: 200,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => FaceRecognitionPage()),
+                );
+              },
+              icon: const Icon(
+                CupertinoIcons.photo_fill_on_rectangle_fill,
+                size: 30,
               ),
-              const SizedBox(
-                height: 40,
-              ),
-              CustomElevatedButton(
-                label: 'Take image',
-                icon: const Icon(
-                  CupertinoIcons.camera_circle_fill,
-                  size: 35,
-                ),
-                onPressed: () async {
-                  try {
-                    await _initializeControllerFuture;
-                    final image = await _controller.takePicture();
-
-                    if (!context.mounted) return;
-
-                    // Normalize and resize image before sending to server
-                    final normalizedImageFile =
-                        await normalizeImageOrientation(image.path);
-                    final resizedImageFile =
-                        await resizeImage(normalizedImageFile.path, 500, 500);
-
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Captured Image'),
-                        content: Image.file(File(resizedImageFile.path)),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context); // Close dialog
-                              sendImageToServer(resizedImageFile
-                                  .path); // Send image to server
-                            },
-                            child: const Text('Send to Server'),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Retake'),
-                          ),
-                        ],
-                      ),
-                    );
-                  } catch (e) {
-                    print("Error during image capture: $e");
-                  }
-                },
-              ),
-              const SizedBox(
-                height: 20,
-              )
-            ],
+            )
+          ]),
+          const SizedBox(
+            height: 40,
           ),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            CustomElevatedButton(
+              label: 'Take image',
+              width: 200,
+              height: 50,
+              icon: const Icon(
+                CupertinoIcons.camera_circle_fill,
+                size: 35,
+              ),
+              onPressed: () async {
+                try {
+                  await _initializeControllerFuture;
+                  final image = await _controller.takePicture();
+
+                  if (!context.mounted) return;
+
+                  // Normalize and resize image before sending to server
+                  final normalizedImageFile =
+                      await normalizeImageOrientation(image.path);
+                  final resizedImageFile =
+                      await resizeImage(normalizedImageFile.path, 500, 500);
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Captured Image'),
+                      content: Image.file(File(resizedImageFile.path)),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context); // Close dialog
+                            sendImageToServer(
+                                resizedImageFile.path); // Send image to server
+                          },
+                          child: const Text('Send to Server'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Retake'),
+                        ),
+                      ],
+                    ),
+                  );
+                } catch (e) {
+                  print("Error during image capture: $e");
+                }
+              },
+            ),
+          ]),
+          const SizedBox(
+            height: 20,
+          )
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.blue,
+        selectedItemColor: const Color.fromRGBO(0, 91, 196, 1),
         selectedLabelStyle:
             const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         unselectedFontSize: 18,
@@ -235,7 +238,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.person_crop_rectangle_fill),
-            label: 'Image Recognition',
+            label: 'Image Upload',
           ),
         ],
         currentIndex: _currentIndex,
@@ -251,6 +254,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
             }
           });
         },
+        enableFeedback: false,
       ),
     );
   }
