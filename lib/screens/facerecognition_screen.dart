@@ -40,7 +40,7 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
   }
 
   Future<void> sendImageToServer(File imageFile) async {
-    final uri = Uri.parse('http://192.168.1.81:5000/recognise'); // Replace with your server IP
+    final uri = Uri.parse('http://192.168.1.243:5000/recognise'); // Replace with your server IP
     final request = http.MultipartRequest('POST', uri);
 
     try {
@@ -166,8 +166,6 @@ class _FaceRecognitionPageState extends State<FaceRecognitionPage> {
       isLoading // Show loading indicator when processing
           ? const CircularProgressIndicator()
           : CustomElevatedButton(
-        width: 290,
-        height: 50,
         onPressed: pickImage,
         label: 'Select Image',
         icon: const Icon(Icons.image),

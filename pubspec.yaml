@@ -40,7 +40,8 @@ dependencies:
   image_picker: ^1.1.2
   image: ^4.5.2
   audioplayers: ^5.2.1    #dont change version above 5.2.1
-  persistent_bottom_nav_bar_v2: ^5.4.0
+  intl: ^0.20.2
+  provider: ^6.1.5
 
 
 
@@ -62,6 +63,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/Ding-Sound-Effect.mp3
+    - assets/noattendancefound.PNG
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

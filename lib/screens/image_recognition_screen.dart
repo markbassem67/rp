@@ -7,7 +7,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:image/image.dart' as img;
 import 'package:rp/custom_elevated_button.dart';
-import 'package:rp/facerecognition_screen.dart';
+import 'package:rp/screens/facerecognition_screen.dart';
+import 'package:rp/screens/live_feed_screen.dart';
 
 
 class TakePictureScreen extends StatefulWidget {
@@ -26,7 +27,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isLoading = false; // Loading state
-  //int _currentIndex = 1;
+  int _currentIndex = 1;
 
   @override
   void initState() {
@@ -70,7 +71,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
 
     if (decodedImage != null) {
       final resizedImage =
-          img.copyResize(decodedImage, width: width, height: height);
+      img.copyResize(decodedImage, width: width, height: height);
       final resizedBytes = img.encodeJpg(resizedImage);
       final resizedFile = File(imagePath);
       await resizedFile.writeAsBytes(resizedBytes);
@@ -81,7 +82,7 @@ class TakePictureScreenState extends State<TakePictureScreen> {
 
   Future<void> sendImageToServer(String imagePath) async {
     final uri = Uri.parse(
-        'http://192.168.1.81:5000/recognise'); // Replace with your server IP
+        'http://192.168.1.243:5000/recognise'); // Replace with your server IP
     final request = http.MultipartRequest('POST', uri);
 
     try {
@@ -137,25 +138,23 @@ class TakePictureScreenState extends State<TakePictureScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : FutureBuilder<void>(
-              future: _initializeControllerFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done) {
-                  return CameraPreview(_controller);
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else {
-                  return const Center(child: CircularProgressIndicator());
-                }
-              },
-            ),
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return CameraPreview(_controller);
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        },
+      ),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             CustomElevatedButton(
               label: 'Upload from photos',
-              height: 50,
-              width: 200,
               onPressed: () {
                 Navigator.push(
                   context,
@@ -175,8 +174,6 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             CustomElevatedButton(
               label: 'Take image',
-              width: 200,
-              height: 50,
               icon: const Icon(
                 CupertinoIcons.camera_circle_fill,
                 size: 35,
@@ -190,9 +187,9 @@ class TakePictureScreenState extends State<TakePictureScreen> {
 
                   // Normalize and resize image before sending to server
                   final normalizedImageFile =
-                      await normalizeImageOrientation(image.path);
+                  await normalizeImageOrientation(image.path);
                   final resizedImageFile =
-                      await resizeImage(normalizedImageFile.path, 500, 500);
+                  await resizeImage(normalizedImageFile.path, 500, 500);
 
                   showDialog(
                     context: context,
@@ -226,10 +223,10 @@ class TakePictureScreenState extends State<TakePictureScreen> {
           )
         ],
       ),
-      /*bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: const Color.fromRGBO(0, 91, 196, 1),
         selectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         unselectedFontSize: 18,
         items: const [
           BottomNavigationBarItem(
@@ -252,10 +249,11 @@ class TakePictureScreenState extends State<TakePictureScreen> {
                       builder: (context) =>
                           LiveRecognitionScreen(camera: widget.camera)));
             }
+
           });
         },
         enableFeedback: false,
-      ),*/
+      ),
     );
   }
 }

@@ -2,13 +2,20 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
-import 'package:rp/detection_record.dart';
+import 'package:provider/provider.dart';
+import 'package:rp/provider.dart';
+import 'package:rp/screens/image_recognition_screen.dart';
+import 'package:rp/screens/recognition_history_screen.dart';
+
+
+
 
 
 class LiveRecognitionScreen extends StatefulWidget {
@@ -20,15 +27,14 @@ class LiveRecognitionScreen extends StatefulWidget {
   State<LiveRecognitionScreen> createState() => _LiveRecognitionScreenState();
 }
 
-class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
+class _LiveRecognitionScreenState extends State<LiveRecognitionScreen> {
   late CameraController _controller;
   late Future<void> _initializeControllerFuture;
   bool _isProcessing = false;
   List<String> _recognizedNames = ["No faces detected"];
-  //int _currentIndex = 0;
+  int _currentIndex = 0;
   final AudioPlayer _audioPlayer = AudioPlayer();
   final Set<String> _recognizedPeople = {};
-   final List<DetectionRecord> history=[];
 
   @override
   void initState() {
@@ -45,7 +51,7 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
   }
 
   void _startFrameProcessing() {
-    Timer.periodic(const Duration(milliseconds: 1000), (timer) {
+    Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         _processFrame();
       } else {
@@ -72,10 +78,10 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
       }
 
       final img.Image resizedImage =
-          img.copyResize(originalImage, width: 500, height: 500);
+      img.copyResize(originalImage, width: 500, height: 500);
       final List<int> jpegBytes = img.encodeJpg(resizedImage);
 
-      final uri = Uri.parse('http://192.168.1.81:5000/recognise');
+      final uri = Uri.parse('http://192.168.1.243:5000/recognise');
       final request = http.MultipartRequest('POST', uri);
       request.files.add(http.MultipartFile.fromBytes('image', jpegBytes,
           filename: 'frame.jpg'));
@@ -84,28 +90,34 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
       final responseData = await response.stream.bytesToString();
       final decodedResponse = jsonDecode(responseData);
 
-      //print("Server Response: $decodedResponse"); // Debugging
-
-      if (response.statusCode == 200 && decodedResponse['faces'].isNotEmpty) {
-        List<dynamic> faces = decodedResponse['faces'];
+      if (response.statusCode == 200 &&
+          decodedResponse.containsKey('faces') &&
+          decodedResponse['faces'].isNotEmpty) {
+        List<String> detectedNames = [];
+        for (var face in decodedResponse['faces']) {
+          if (face.containsKey('name')) {
+            detectedNames.add(face['name']);
+          }
+        }
 
         setState(() {
-          _recognizedNames = faces.map((f) => f['name']).join(', ') as List<String>;
+          _recognizedNames =
+          detectedNames.isNotEmpty ? detectedNames : ["No faces detected"];
         });
 
-        for (var face in faces) {
-          String detectedPerson = face['name'];
-          if (!_recognizedPeople.contains(detectedPerson)) {
-            _recognizedPeople.add(detectedPerson);
-            _audioPlayer.play(AssetSource('Ding-Sound-Effect.mp3'));
+        final historyProvider =
+        Provider.of<RecognitionHistoryProvider>(context, listen: false);
+
+        for (String name in detectedNames) {
+          if (!_recognizedPeople.contains(name) && name != "Unknown Face") {
+            _recognizedPeople.add(name);
+            historyProvider.addEntry(
+              RecognitionEntry(name: name, timestamp: DateTime.now()),
+            );
+            await _audioPlayer.play(AssetSource('Ding-Sound-Effect.mp3'));
           }
-          history.add(DetectionRecord(
-            name: detectedPerson,
-            timestamp: DateTime.now(),
-          ));
         }
-      }
-      else {
+      } else {
         setState(() {
           _recognizedNames = ["No faces detected"];
         });
@@ -117,6 +129,22 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
     }
   }
 
+  void _navigateToHistoryScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RecognitionHistoryScreen(),
+      ),
+    );
+  }
+
+  /*@override
+  void dispose() {
+    _controller.dispose();
+    _audioPlayer.dispose();
+    super.dispose();
+  }*/
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -126,6 +154,12 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
           style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.arrow_down_doc_fill),
+            onPressed: _navigateToHistoryScreen,
+          ),
+        ],
       ),
       body: Stack(
         alignment: Alignment.center,
@@ -148,22 +182,23 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
               child: Column(
                 children: _recognizedNames
                     .map((name) => Text(
-                          name,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold),
-                        ))
+                  name,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold),
+                ))
                     .toList(),
               ),
             ),
           ),
         ],
       ),
-      /*bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.blue,
+      bottomNavigationBar: BottomNavigationBar(
+        enableFeedback: false,
+        selectedItemColor: const Color.fromRGBO(0, 91, 196, 1),
         selectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         unselectedFontSize: 18,
         items: const [
           BottomNavigationBarItem(
@@ -172,12 +207,9 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.person_crop_rectangle_fill),
-            label: 'Image Upload',
+            label: 'Image Recognition',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(CupertinoIcons.clock_solid),
-            label: 'Session History',
-          ),
+
         ],
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -185,33 +217,17 @@ class _LiveRecognitionScreenState extends State<LiveRecognitionScreen>  {
             _currentIndex = index;
             if (_currentIndex == 1) {
               Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          TakePictureScreen(camera: widget.camera)));
-            } else if (_currentIndex == 2) {
-              Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => HistoryScreen(
-                    history: history,
-                    onClearHistory: () {
-                      setState(() {
-                        history.clear();
-                        _recognizedPeople
-                            .clear(); // Optional: reset recognition state
-                      });
-                    },
-                  ),
+                  builder: (context) =>
+                      TakePictureScreen(camera: widget.camera),
                 ),
               );
             }
+
           });
         },
-        enableFeedback: false,
-      ),*/
+      ),
     );
   }
-
 }
-
