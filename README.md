@@ -1,4 +1,4 @@
-# rp
+# Face Recognition using AI (Graduation Project)
 
 A new Flutter project.
 
